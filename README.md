@@ -65,6 +65,7 @@ curl --location 'http://127.0.0.1:8080/api/v1/ed25519/sign' \
 ```
 curl --location 'http://127.0.0.1:8080/api/v1/ed25519/verify' \
 --header 'public-key: My-Public-Key' \
+--header 'signature: My-Signature' \
 --header 'Content-Type: application/json' \
 --data '{
     "data": "Hello World"

@@ -17,6 +17,10 @@ type Keypair struct {
 	PrivateKey string `json:"private_key"`
 }
 
+type HttpRequest struct {
+	Data string `json:"data"`
+}
+
 type HttpResponse struct {
 	Payload string `json:"payload"`
 }
