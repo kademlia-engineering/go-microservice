@@ -149,15 +149,6 @@ func Ed25519Verification(s server.Server) http.HandlerFunc {
 		// Perform Signature
 		ecc := &crypto.Ed25519Crypto{}
 		verification := ecc.Verify(publicKey, signature, []byte(data.Data))
-		if err != nil {
-			logrus.Errorf("error: %s", err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(models.HttpResponse{
-				Payload: fmt.Sprintf("%s", err),
-			})
-			return
-		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
