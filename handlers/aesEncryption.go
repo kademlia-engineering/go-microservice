@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/sirupsen/logrus"
+	"kademlia.io/crypto"
 	"kademlia.io/models"
 	"kademlia.io/server"
 )
@@ -24,10 +25,31 @@ import (
 func AesEncrypt(s server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logrus.Info("AesEncrypt")
+
+		// Extract Cipher
+		cipher := r.Header.Get("cipher")
+
+		// Decode the JSON body into the struct
+		var reqData models.HttpRequest
+		err := json.NewDecoder(r.Body).Decode(&reqData)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		encrypted, err := crypto.EncryptData([]byte(reqData.Data), cipher)
+		if err != nil {
+			logrus.Info("Failed to encrypt data")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(models.HttpResponse{
-			Payload: "config.Version",
+			Payload: string(encrypted),
 		})
 	}
 }
@@ -40,10 +62,31 @@ func AesEncrypt(s server.Server) http.HandlerFunc {
 func AesDecrypt(s server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logrus.Info("AesDecrypt")
+
+		// Extract Cipher
+		cipher := r.Header.Get("cipher")
+
+		// Decode the JSON body into the struct
+		var reqData models.HttpRequest
+		err := json.NewDecoder(r.Body).Decode(&reqData)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		decrypted, err := crypto.DecryptData(reqData.Data, cipher)
+		if err != nil {
+			logrus.Info("Failed to encrypt data")
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(models.HttpResponse{
-			Payload: "config.Version",
+			Payload: string(decrypted),
 		})
 	}
 }

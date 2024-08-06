@@ -15,12 +15,18 @@ import (
 // GenerateKeyPair generates an Ed25519 public/private key pair.
 func (e *Ed25519Crypto) GenerateKeyPair() (publicKey, privateKey []byte, err error) {
 	public, private, err := ed25519.GenerateKey(rand.Reader)
-	return public, private, err
+	if err != nil {
+		return nil, nil, err
+	}
+	// The actual private key is the first 32 bytes of the generated private key.
+	scalar := private[:32]
+	return public, scalar, nil
 }
 
 // Sign signs the message with the private key.
-func (e *Ed25519Crypto) Sign(privateKey, message []byte) (signature []byte, err error) {
-	private := ed25519.PrivateKey(privateKey)
+func (e *Ed25519Crypto) Sign(privateKey, publicKey, message []byte) (signature []byte, err error) {
+	pk := append(privateKey, publicKey...)
+	private := ed25519.PrivateKey(pk)
 	return ed25519.Sign(private, message), nil
 }
 

@@ -61,10 +61,12 @@ func Ed25519Signature(s server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logrus.Info("Ed25519Signature")
 
-		// Extract Private Key
+		// Extract Keypair
+		publicKeyBase58 := r.Header.Get("public-key")
 		privateKeyBase58 := r.Header.Get("private-key")
 
 		// Decode to a slice of bytes
+		publicKey := base58.Decode(publicKeyBase58)
 		privateKey := base58.Decode(privateKeyBase58)
 
 		// Decode the JSON body into the struct
@@ -83,7 +85,7 @@ func Ed25519Signature(s server.Server) http.HandlerFunc {
 
 		// Perform Signature
 		ecc := &crypto.Ed25519Crypto{}
-		signature, err := ecc.Sign(privateKey, []byte(data.Data))
+		signature, err := ecc.Sign(privateKey, publicKey, []byte(data.Data))
 		if err != nil {
 			logrus.Errorf("error: %s", err)
 			w.Header().Set("Content-Type", "application/json")
@@ -97,7 +99,7 @@ func Ed25519Signature(s server.Server) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(models.HttpResponse{
-			Payload: hex.EncodeToString(sig),
+			Payload: hex.EncodeToString(signature),
 		})
 	}
 }
@@ -111,7 +113,7 @@ func Ed25519Verification(s server.Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logrus.Info("Ed25519Verification")
 
-		// Extract Public Key
+		// Extract Keypair & Signature
 		publicKeyBase58 := r.Header.Get("public-key")
 		signatureHex := r.Header.Get("signature")
 
@@ -132,7 +134,7 @@ func Ed25519Verification(s server.Server) http.HandlerFunc {
 
 		// Decode the JSON body into the struct
 		var data models.HttpRequest
-		err := json.NewDecoder(r.Body).Decode(&data)
+		err = json.NewDecoder(r.Body).Decode(&data)
 		if err != nil {
 			logrus.Errorf("error: %s", err)
 			w.Header().Set("Content-Type", "application/json")
@@ -146,7 +148,7 @@ func Ed25519Verification(s server.Server) http.HandlerFunc {
 
 		// Perform Signature
 		ecc := &crypto.Ed25519Crypto{}
-		verification, err := ecc.Verify(publicKey, signature, []byte(data.Data))
+		verification := ecc.Verify(publicKey, signature, []byte(data.Data))
 		if err != nil {
 			logrus.Errorf("error: %s", err)
 			w.Header().Set("Content-Type", "application/json")
